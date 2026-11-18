@@ -15,8 +15,16 @@ class HttpError extends Error {
 
 // ---------- Banco (Upstash Redis via REST, sem dependências) ----------
 function redisConfig() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const env = process.env;
+  // Aceita os nomes padrão e também os com prefixo (ex.: STORAGE_KV_REST_API_URL), que a Vercel cria
+  // quando o banco é conectado com um "Custom Prefix".
+  const find = (suffixes, exclude) => {
+    for (const s of suffixes) if (env[s]) return env[s];
+    const k = Object.keys(env).find(n => suffixes.some(s => n.endsWith('_' + s)) && !(exclude && exclude.test(n)) && env[n]);
+    return k ? env[k] : '';
+  };
+  const url = find(['KV_REST_API_URL', 'UPSTASH_REDIS_REST_URL']);
+  const token = find(['KV_REST_API_TOKEN', 'UPSTASH_REDIS_REST_TOKEN'], /READ_ONLY/);
   if (!url || !token) {
     throw new HttpError(500, 'Banco de dados não configurado. Conecte o Upstash Redis ao projeto na Vercel (aba Storage) e faça um novo deploy.');
   }
