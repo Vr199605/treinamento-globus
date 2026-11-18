@@ -1,0 +1,7 @@
+{
+  "name": "desafio-cowork",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Provinha gamificada do treinamento de Claude Cowork da Globus",
+  "engines": { "node": ">=18" }
+}

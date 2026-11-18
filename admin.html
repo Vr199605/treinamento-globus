@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin · Desafio Cowork</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+<main class="wrap wide">
+  <section id="login">
+    <p class="pill">Área do apresentador</p>
+    <h1>Admin</h1>
+    <form id="loginForm">
+      <label for="pw">Senha</label>
+      <input id="pw" type="password" autocomplete="current-password" required>
+      <button class="btn" type="submit">Entrar</button>
+      <p class="error" id="loginError" role="alert"></p>
+    </form>
+  </section>
+
+  <section id="panel" hidden>
+    <div class="head">
+      <div><p class="pill">Área do apresentador</p><h1>Ranking</h1></div>
+      <div class="actions">
+        <button class="mini" id="refresh">Atualizar</button>
+        <button class="mini" id="csv">Baixar CSV</button>
+        <button class="mini" id="logout">Sair</button>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div><b id="nTotal">0</b><span>participantes</span></div>
+      <div><b id="nDone">0</b><span>concluíram</span></div>
+      <div><b id="nRun">0</b><span>em andamento</span></div>
+    </div>
+
+    <div class="toggles">
+      <label class="sw"><input type="checkbox" id="tOpen"> Provinha aberta</label>
+      <label class="sw"><input type="checkbox" id="tReveal"> Mostrar gabarito ao terminar</label>
+    </div>
+
+    <div id="winners"></div>
+
+    <h2>Classificação</h2>
+    <p class="note">Ordem: mais pontos. Empate: mais acertos nas difíceis e no desafio. Persistindo, sorteio.</p>
+    <div class="tablewrap"><table id="rank"><thead><tr><th>#</th><th>Nome</th><th>Pontos</th><th>Acertos</th><th>Difíceis</th><th>Tempo</th><th></th></tr></thead><tbody></tbody></table></div>
+
+    <h2>Em andamento ou travados</h2>
+    <p class="note">Quem começou e não terminou fica aqui. Se alguém caiu no meio, libere o nome para jogar de novo.</p>
+    <div class="tablewrap"><table id="run"><thead><tr><th>Nome</th><th>Começou às</th><th></th></tr></thead><tbody></tbody></table></div>
+
+    <div class="danger"><button class="mini bad" id="reset">Zerar tudo</button><span>Apaga todos os participantes. Use antes de uma nova turma.</span></div>
+  </section>
+</main>
+<script src="/admin.js"></script>
+</body>
+</html>

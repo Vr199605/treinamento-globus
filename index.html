@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desafio Cowork · Globus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<main class="wrap">
+
+  <section id="intro" class="screen active">
+    <p class="pill">Treinamento interno Globus</p>
+    <h1>Desafio Cowork</h1>
+    <p class="lead">Antes de começar, veja em 1 minuto como a provinha funciona.</p>
+    <ol class="how">
+      <li><b>Você entra só com o nome.</b><span>Use nome e sobrenome. Cada pessoa joga uma única vez, então não dá para refazer.</span></li>
+      <li><b>São 10 perguntas, de 4 níveis.</b><span>Fácil, Médio, Difícil e Desafio. Quanto mais difícil, mais pontos vale. Cada pergunta tem uma alternativa certa e algumas pegadinhas.</span></li>
+      <li><b>Você tem 20 segundos por pergunta.</b><span>Toque na alternativa para responder. A próxima aparece sozinha. Se o tempo acabar, a pergunta vale zero.</span></li>
+      <li><b>Acertar rápido rende mais.</b><span>Você ganha os pontos do nível, mais um bônus de velocidade, mais um bônus por acertos seguidos.</span></li>
+      <li><b>No fim, você vê sua pontuação.</b><span>Os dois que somarem mais pontos ganham um brinde. Em caso de empate, vale quem acertou mais nas difíceis. Persistindo, sorteio.</span></li>
+    </ol>
+    <div class="example">
+      <p class="ex-t">Exemplo de pontuação</p>
+      <p>Pergunta de nível <b>Médio</b> (vale 150), respondida certo em <b>5 segundos</b>, como o <b>3º acerto seguido</b>:</p>
+      <p class="sum">150 do nível + 56 de velocidade + 50 de sequência = <b>256 pontos</b></p>
+      <table class="pts"><tr><th>Nível</th><th>Pontos base</th></tr><tr><td>Fácil</td><td>100</td></tr><tr><td>Médio</td><td>150</td></tr><tr><td>Difícil</td><td>200</td></tr><tr><td>Desafio</td><td>300</td></tr></table>
+    </div>
+    <p class="tipline"><b>Dica:</b> leia a pergunta inteira antes de tocar. A alternativa que parece certa logo de cara pode ser a pegadinha.</p>
+    <button class="btn" id="goName" type="button">Entendi, vamos lá</button>
+  </section>
+
+  <section id="home" class="screen">
+    <p class="pill">Treinamento interno Globus</p>
+    <h1>Qual é o seu nome?</h1>
+    <p class="lead">Quem somar mais pontos leva um brinde. Boa sorte!</p>
+    <form id="startForm" autocomplete="off">
+      <label for="name">Seu nome</label>
+      <input id="name" maxlength="40" placeholder="Nome e sobrenome" required>
+      <button class="btn" id="startBtn" type="submit">Começar o desafio</button>
+      <p class="error" id="homeError" role="alert"></p>
+    </form>
+  </section>
+
+  <section id="quiz" class="screen">
+    <div class="topbar">
+      <span class="chip" id="who"></span>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="xp"><div id="xpFill"></div></div>
+    <div class="levelrow"><span class="level" id="level"></span><span class="worth" id="worth"></span></div>
+    <h2 id="question"></h2>
+    <div id="options" class="options"></div>
+    <div class="timer"><div id="timerFill"></div></div>
+    <p class="hint" id="timeText"></p>
+  </section>
+
+  <section id="result" class="screen">
+    <p class="pill">Resultado</p>
+    <h1 id="rName"></h1>
+    <div class="score"><span id="rScore">0</span><small>pontos</small></div>
+    <p class="badge" id="rTitle"></p>
+    <div class="stats">
+      <div><b id="rCorrect"></b><span>acertos</span></div>
+      <div><b id="rHard"></b><span>nas difíceis e no desafio</span></div>
+    </div>
+    <p class="lead" id="rNote">Sua participação foi registrada. O apresentador divulga os vencedores no fim.</p>
+    <div id="review"></div>
+  </section>
+
+  <section id="blocked" class="screen">
+    <p class="pill">Aviso</p>
+    <h1>Você já participou</h1>
+    <p class="lead">Cada pessoa joga uma vez só. O resultado será divulgado pelo apresentador.</p>
+  </section>
+
+</main>
+<script src="/app.js"></script>
+</body>
+</html>
