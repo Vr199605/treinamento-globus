@@ -12,9 +12,26 @@
     $(id).classList.add('active'); window.scrollTo(0, 0);
   }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  // Lê a resposta como texto e só depois tenta JSON: se o servidor devolver uma página HTML
+  // (ex.: 404 da Vercel), mostramos uma mensagem clara em vez de "Unexpected token".
   function post(url, body) {
     return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Erro inesperado.'); return j; }); });
+      .catch(function () { throw new Error('Sem conexão com o servidor. Verifique sua internet e tente de novo.'); })
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var j = null; try { j = JSON.parse(txt); } catch (e) {}
+          if (!r.ok || !j) {
+            var err = new Error((j && j.error) || (r.status === 404 ? 'Servidor da provinha não encontrado (404). Avise o apresentador.' : 'Erro inesperado no servidor (' + r.status + '). Tente de novo.'));
+            err.status = r.status; err.code = j && j.code; throw err;
+          }
+          return j;
+        });
+      });
+  }
+  function resetToHome(msg) {
+    clearInterval(timer); S = null; try { localStorage.removeItem(KEY); } catch (e) {}
+    var btn = $('startBtn'); btn.disabled = false; btn.textContent = 'Começar o desafio';
+    show('home'); $('homeError').textContent = msg || '';
   }
 
   // ---------- Explicação e início ----------
@@ -27,14 +44,18 @@
       S = { name: d.name, questions: d.questions, timeLimit: d.timeLimit, answers: [], idx: 0, done: false };
       save(); runQuestion();
     }).catch(function (e) {
-      err.textContent = e.message; btn.disabled = false; btn.textContent = 'Começar o desafio';
+      btn.disabled = false; btn.textContent = 'Começar o desafio';
+      if (e.code === 'already') { show('blocked'); return; }
+      err.textContent = e.message;
     });
   });
 
   // ---------- Perguntas ----------
   var LV = { 'Fácil': 'f', 'Médio': 'm', 'Difícil': 'd', 'Desafio': 'x' };
+  var answered = false;
   function runQuestion() {
     if (S.idx >= S.questions.length) return finish();
+    answered = false;
     var q = S.questions[S.idx], n = S.questions.length;
     show('quiz');
     $('who').textContent = S.name;
@@ -56,6 +77,7 @@
     clearInterval(timer);
     var fill = $('timerFill'), limit = S.timeLimit * 1000;
     startedAt = Date.now(); fill.className = ''; fill.style.width = '100%';
+    $('timeText').textContent = S.timeLimit + 's';
     timer = setInterval(function () {
       var left = Math.max(limit - (Date.now() - startedAt), 0);
       fill.style.width = (left / limit * 100) + '%';
@@ -65,6 +87,8 @@
     }, 100);
   }
   function answer(i, btn) {
+    if (answered) return; // evita resposta dupla (clique + fim do tempo, ou dois cliques rápidos)
+    answered = true;
     clearInterval(timer);
     var ms = Math.min(Date.now() - startedAt, S.timeLimit * 1000);
     $('options').classList.add('locked');
@@ -76,10 +100,15 @@
   // ---------- Resultado ----------
   function finish() {
     clearInterval(timer);
-    show('quiz'); $('question').textContent = 'Enviando suas respostas…'; $('options').innerHTML = '';
+    show('quiz');
+    $('who').textContent = S.name; $('count').textContent = 'Fim!'; $('xpFill').style.width = '100%';
+    $('level').textContent = ''; $('level').className = 'level'; $('worth').textContent = '';
+    $('timerFill').style.width = '0'; $('timeText').textContent = '';
+    $('question').textContent = 'Enviando suas respostas…'; $('options').innerHTML = ''; $('options').className = 'options';
     post('/api/submit', { name: S.name, answers: S.answers }).then(function (r) {
       S.done = true; S.result = r; save(); showResult(r, true);
     }).catch(function (e) {
+      if (e.code === 'notstarted') return resetToHome(e.message);
       var box = $('options'); box.innerHTML = '';
       box.appendChild(el('p', 'error', e.message));
       var b = el('button', 'btn', 'Tentar enviar de novo'); b.type = 'button'; b.onclick = finish; box.appendChild(b);
@@ -93,7 +122,8 @@
     $('rHard').textContent = r.hard + ' de 4';
     countUp($('rScore'), r.score);
     var rv = $('review'); rv.innerHTML = '';
-    if (r.review) {
+    $('rNote').textContent = 'Sua participação foi registrada. O apresentador divulga os vencedores no fim.';
+    if (r.review && r.review.length) {
       $('rNote').textContent = 'Veja o gabarito e as pegadinhas de cada pergunta:';
       r.review.forEach(function (x, n) {
         var d = el('div', 'rv' + (x.ok ? ' ok' : ''));
@@ -122,7 +152,9 @@
 
   // ---------- Ao abrir a página ----------
   S = load();
-  if (S && S.done && S.result) showResult(S.result, false);
-  else if (S && S.questions && S.idx < S.questions.length) runQuestion(); // retoma se a página recarregar
-  else if (S && S.questions) finish();
+  var valid = S && typeof S === 'object' && Array.isArray(S.questions) && S.questions.length && Array.isArray(S.answers) && S.name;
+  if (!valid) { S = null; try { localStorage.removeItem(KEY); } catch (e) {} }
+  else if (S.done && S.result) showResult(S.result, false);
+  else if (S.idx < S.questions.length) runQuestion(); // retoma se a página recarregar
+  else finish();
 })();
