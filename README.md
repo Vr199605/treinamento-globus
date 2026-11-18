@@ -57,6 +57,15 @@ Os 2 primeiros por pontos. Em caso de empate, vale quem acertou mais nas difíce
 ## Sobre o "só uma vez"
 O controle é feito pelo nome, no servidor. Nomes iguais, mesmo com acento ou maiúscula diferente, contam como a mesma pessoa. Como só se pede o nome, quem quiser burlar pode inventar outro nome. Para evitar isso, peça que usem nome e sobrenome e fique de olho na lista do admin.
 
+## Estrutura
+- `index.html`, `app.js`, `style.css`: tela do participante.
+- `admin.html`, `admin.js`, `admin.css`: painel do apresentador.
+- `api/start.js`, `api/submit.js`, `api/admin.js`: rotas do servidor (funções da Vercel).
+- `api/_lib.js`: banco (Upstash Redis via REST), pontuação e utilidades.
+- `api/_questions.js`: perguntas e gabarito.
+
+**Importante:** a pasta `api/` precisa estar no repositório. Sem ela, a Vercel responde "The page could not be found" e a provinha não funciona.
+
 ## Mudar as perguntas
 Edite `api/_questions.js`. O campo `correct` é a posição da alternativa certa (0 é a letra A).
 

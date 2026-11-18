@@ -7,24 +7,41 @@
 
   function api(method, body) {
     return fetch('/api/admin', { method: method, headers: { 'Content-Type': 'application/json', 'x-admin-password': PW }, body: body ? JSON.stringify(body) : undefined })
-      .then(function (r) { return r.json().then(function (j) { if (!r.ok) { var e = new Error(j.error || 'Erro'); e.status = r.status; throw e; } return j; }); });
+      .catch(function () { throw new Error('Sem conexão com o servidor.'); })
+      .then(function (r) {
+        return r.text().then(function (txt) {
+          var j = null; try { j = JSON.parse(txt); } catch (x) {}
+          if (!r.ok || !j) {
+            var e = new Error((j && j.error) || (r.status === 404 ? 'API não encontrada (404). Confira se a pasta api/ foi enviada para o repositório.' : 'Erro inesperado no servidor (' + r.status + ').'));
+            e.status = r.status; throw e;
+          }
+          return j;
+        });
+      });
   }
   function el(tag, text, cls) { var e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
   function fmtTime(ms) { var s = Math.round(ms / 1000); return Math.floor(s / 60) + 'min ' + String(s % 60).padStart(2, '0') + 's'; }
   function fmtHour(t) { return new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
 
+  var lastErr = '';
   function load() {
-    return api('GET').then(function (d) { data = d; render(); }).catch(function (e) {
-      if (e.status === 401) { logout(); $('loginError').textContent = 'Senha incorreta.'; } else alert(e.message);
+    return api('GET').then(function (d) { data = d; lastErr = ''; render(); }).catch(function (e) {
+      if (e.status === 401) { logout(); $('loginError').textContent = 'Senha incorreta.'; }
+      else if (e.message !== lastErr) { lastErr = e.message; alert(e.message); } // não repete o mesmo alerta a cada 10s
     });
   }
+  function act(body) { return api('POST', body).then(load).catch(function (e) { alert(e.message); load(); }); }
   function logout() { sessionStorage.removeItem('cw-admin'); PW = ''; clearInterval(timer); $('panel').hidden = true; $('login').hidden = false; }
 
+  function enter(d) {
+    data = d; $('login').hidden = true; $('panel').hidden = false; render();
+    clearInterval(timer); timer = setInterval(load, 10000);
+  }
   $('loginForm').addEventListener('submit', function (ev) {
-    ev.preventDefault(); PW = $('pw').value; sessionStorage.setItem('cw-admin', PW);
+    ev.preventDefault(); PW = $('pw').value;
     $('loginError').textContent = '';
-    api('GET').then(function (d) { data = d; $('login').hidden = true; $('panel').hidden = false; render(); timer = setInterval(load, 10000); })
-      .catch(function (e) { $('loginError').textContent = e.message; });
+    api('GET').then(function (d) { sessionStorage.setItem('cw-admin', PW); enter(d); })
+      .catch(function (e) { PW = ''; sessionStorage.removeItem('cw-admin'); $('loginError').textContent = e.message; });
   });
   $('logout').onclick = logout; $('refresh').onclick = load;
 
@@ -73,7 +90,7 @@
         if (A.sure.length) wb.appendChild(el('p', 'Garantido: ' + A.sure.map(function (p) { return p.name; }).join(', ')));
         wb.appendChild(el('p', 'Empate em ' + A.group[0].score + ' pontos (' + A.group[0].hard + ' acertos nas difíceis) entre: ' + A.group.map(function (p) { return p.name; }).join(', ') + '. ' + A.slots + (A.slots > 1 ? ' vagas' : ' vaga') + ' por sorteio.'));
         if (saved) {
-          var picked = JSON.parse(saved);
+          var picked = []; try { picked = JSON.parse(saved) || []; } catch (x) {}
           picked.forEach(function (k) { winnerKeys[k] = 1; });
           wb.appendChild(el('p', 'Sorteado: ' + picked.map(function (k) { return (data.players.find(function (p) { return p.key === k; }) || {}).name; }).join(' e '), 'names'));
         } else {
@@ -98,14 +115,14 @@
   }
   function actionCell(p) {
     var td = el('td'), b = el('button', 'liberar nome', 'x');
-    b.onclick = function () { if (confirm('Liberar o nome "' + p.name + '"? O resultado dele será apagado e ele poderá jogar de novo.')) api('POST', { action: 'release', key: p.key }).then(load); };
+    b.onclick = function () { if (confirm('Liberar o nome "' + p.name + '"? O resultado será apagado e a pessoa poderá jogar de novo.')) act({ action: 'release', key: p.key }); };
     td.appendChild(b); return td;
   }
 
-  $('tOpen').onchange = function () { api('POST', { action: 'setting', key: 'open', value: this.checked }).then(load); };
-  $('tReveal').onchange = function () { api('POST', { action: 'setting', key: 'reveal', value: this.checked }).then(load); };
+  $('tOpen').onchange = function () { act({ action: 'setting', key: 'open', value: this.checked }); };
+  $('tReveal').onchange = function () { act({ action: 'setting', key: 'reveal', value: this.checked }); };
   $('reset').onclick = function () {
-    if (confirm('Apagar TODOS os participantes e resultados? Isso não pode ser desfeito.') && confirm('Tem certeza mesmo?')) api('POST', { action: 'reset' }).then(function () { sessionStorage.clear(); sessionStorage.setItem('cw-admin', PW); load(); });
+    if (confirm('Apagar TODOS os participantes e resultados? Isso não pode ser desfeito.') && confirm('Tem certeza mesmo?')) api('POST', { action: 'reset' }).then(function () { sessionStorage.clear(); sessionStorage.setItem('cw-admin', PW); load(); }).catch(function (e) { alert(e.message); });
   };
   $('csv').onclick = function () {
     var rows = [['posicao', 'nome', 'pontos', 'acertos', 'dificeis', 'tempo_segundos']];
@@ -113,5 +130,5 @@
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + rows.map(function (r) { return r.join(';'); }).join('\n')], { type: 'text/csv' })); a.download = 'ranking-cowork.csv'; a.click();
   };
 
-  if (PW) { api('GET').then(function (d) { data = d; $('login').hidden = true; $('panel').hidden = false; render(); timer = setInterval(load, 10000); }).catch(function () { logout(); }); }
+  if (PW) { api('GET').then(enter).catch(function (e) { logout(); if (e.status !== 401) $('loginError').textContent = e.message; }); }
 })();
